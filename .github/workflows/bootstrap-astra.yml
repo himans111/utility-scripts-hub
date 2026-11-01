@@ -1,4 +1,4 @@
-name: Build, release and deploy Astra AI
+name: Build and release Astra AI
 
 on:
   push:
@@ -12,8 +12,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: astra-bootstrap
@@ -102,18 +100,3 @@ jobs:
           make_latest: true
           generate_release_notes: true
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - name: Upload website
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-      - name: Deploy website
-        id: deployment
-        uses: actions/deploy-pages@v4
-        with:
-          token: ${{ github.token }}

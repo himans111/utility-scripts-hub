@@ -5,7 +5,7 @@ plugins {
 
 val webAppUrl = (project.findProperty("webAppUrl") as String?)
     ?: System.getenv("WEB_APP_URL")?.takeIf { it.isNotBlank() }
-    ?: "https://himans111.github.io/utility-scripts-hub/"
+    ?: "https://astra-ai-site.vercel.app/"
 val appVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
 
 android {

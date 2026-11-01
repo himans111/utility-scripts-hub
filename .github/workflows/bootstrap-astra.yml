@@ -1,10 +1,12 @@
-name: Bootstrap Astra AI Android APK and Pages
+name: Build, release and deploy Astra AI
 
 on:
   push:
     branches: [main]
     paths:
       - ".astra_source/**"
+      - "android/**"
+      - "site/**"
       - ".github/workflows/bootstrap-astra.yml"
   workflow_dispatch:
 
@@ -74,7 +76,7 @@ jobs:
       - name: Build Android APK
         working-directory: android
         env:
-          VERSION_CODE: ${{ github.run_id }}
+          VERSION_CODE: ${{ github.run_number }}
         run: |
           gradle --no-daemon :app:assembleDebug
           cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/Astra-AI.apk"
@@ -90,8 +92,8 @@ jobs:
       - name: Create GitHub Release with APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.${{ github.run_id }}
-          name: Astra AI v1.0.${{ github.run_id }}
+          tag_name: v1.0.${{ github.run_number }}
+          name: Astra AI v1.0.${{ github.run_number }}
           body: |
             Astra AI Android app release.
             Install the APK manually and enter your own Gemini API key in Settings.

@@ -44,6 +44,7 @@ class MainActivity : Activity() {
     private var pendingInstallUri: Uri? = null
     private var pendingDownloadId: Long = -1L
     @Volatile private var isCheckingForUpdate = false
+    @Volatile private var mainFrameLoadFailed = false
 
     private val fileChooserRequest = 4102
     private val audioPermissionRequest = 4103
@@ -130,12 +131,13 @@ class MainActivity : Activity() {
             }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                mainFrameLoadFailed = false
                 statusOverlay.visibility = View.VISIBLE
                 statusOverlay.text = "Astra AI is loading…"
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
-                statusOverlay.visibility = View.GONE
+                if (!mainFrameLoadFailed) statusOverlay.visibility = View.GONE
             }
 
             override fun onReceivedError(
@@ -144,6 +146,7 @@ class MainActivity : Activity() {
                 error: WebResourceError?
             ) {
                 if (request?.isForMainFrame == true) {
+                    mainFrameLoadFailed = true
                     showLoadError("The website could not be reached.\n${error?.description ?: "Network error"}")
                 }
             }
@@ -154,6 +157,7 @@ class MainActivity : Activity() {
                 errorResponse: android.webkit.WebResourceResponse?
             ) {
                 if (request?.isForMainFrame == true) {
+                    mainFrameLoadFailed = true
                     showLoadError("The website returned HTTP ${errorResponse?.statusCode ?: "error"}. Tap here to retry.")
                 }
             }

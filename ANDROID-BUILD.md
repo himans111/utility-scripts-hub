@@ -13,7 +13,7 @@ The **Check updates** button has two jobs:
 - The web app checks its service worker and installs updated PWA files.
 - In the Android APK, the same button also checks the latest GitHub Release. When a newer APK is available, Astra offers to download it. Android then asks the user to approve installation. Android's installation confirmation cannot be bypassed by the app.
 
-A native Android change is delivered through a new APK release. A website-only change can be delivered by the service worker without reinstalling the APK after the static website is redeployed to Vercel.
+A native Android change is delivered through a new APK release. A website-only change can be delivered by the service worker without reinstalling the APK after the static website is redeployed to GitHub Pages.
 
 ## Important signing note
 

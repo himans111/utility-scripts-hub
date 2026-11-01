@@ -26,25 +26,29 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Restore source archive from staged parts
+      - name: Restore source archive from staged parts (first run only)
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/astra-extract"
-          cat .astra_source/chunk-* > "$RUNNER_TEMP/astra-project.zip.b64"
-          base64 --decode "$RUNNER_TEMP/astra-project.zip.b64" > "$RUNNER_TEMP/astra-project.zip"
-          unzip -t "$RUNNER_TEMP/astra-project.zip"
-          unzip -q "$RUNNER_TEMP/astra-project.zip" -d "$RUNNER_TEMP/astra-extract"
-          test -d "$RUNNER_TEMP/astra-extract/astra-ai-github"
-          cp -a "$RUNNER_TEMP/astra-extract/astra-ai-github/." .
-          rm -f .github/workflows/build-astra-ai-apk.yml .github/workflows/deploy-astra-ai-pages.yml
-          rm -rf .astra_source "$RUNNER_TEMP/astra-extract" "$RUNNER_TEMP/astra-project.zip" "$RUNNER_TEMP/astra-project.zip.b64"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if ! git diff --cached --quiet; then
-            git commit -m "Add Astra AI Android and website source"
-            git push origin HEAD:main
+          if [[ -d .astra_source ]] && compgen -G ".astra_source/chunk-*" > /dev/null; then
+            mkdir -p "$RUNNER_TEMP/astra-extract"
+            cat .astra_source/chunk-* > "$RUNNER_TEMP/astra-project.zip.b64"
+            base64 --decode "$RUNNER_TEMP/astra-project.zip.b64" > "$RUNNER_TEMP/astra-project.zip"
+            unzip -t "$RUNNER_TEMP/astra-project.zip"
+            unzip -q "$RUNNER_TEMP/astra-project.zip" -d "$RUNNER_TEMP/astra-extract"
+            test -d "$RUNNER_TEMP/astra-extract/astra-ai-github"
+            cp -a "$RUNNER_TEMP/astra-extract/astra-ai-github/." .
+            rm -f .github/workflows/build-astra-ai-apk.yml .github/workflows/deploy-astra-ai-pages.yml
+            rm -rf .astra_source "$RUNNER_TEMP/astra-extract" "$RUNNER_TEMP/astra-project.zip" "$RUNNER_TEMP/astra-project.zip.b64"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            if ! git diff --cached --quiet; then
+              git commit -m "Add Astra AI Android and website source"
+              git push origin HEAD:main
+            fi
+          else
+            echo "Astra AI source is already restored; continuing with build."
           fi
 
       - name: Set up Java

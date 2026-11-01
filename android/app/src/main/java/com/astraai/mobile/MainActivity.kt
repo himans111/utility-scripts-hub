@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -19,8 +20,15 @@ import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceError
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -30,6 +38,7 @@ import java.net.URL
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
+    private lateinit var statusOverlay: TextView
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
     private var pendingPermissionRequest: PermissionRequest? = null
     private var pendingInstallUri: Uri? = null
@@ -67,7 +76,30 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         webView = WebView(this)
-        setContentView(webView)
+        statusOverlay = TextView(this).apply {
+            text = "Astra AI is loading…\n\nPlease check your internet connection. Tap here to retry."
+            textSize = 15f
+            setTextColor(Color.rgb(55, 55, 55))
+            setBackgroundColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            setPadding(36, 36, 36, 36)
+            setOnClickListener {
+                visibility = View.VISIBLE
+                text = "Astra AI is loading…"
+                webView.reload()
+            }
+        }
+        val container = FrameLayout(this)
+        container.addView(webView, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ))
+        container.addView(statusOverlay, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ))
+        setContentView(container)
+
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
@@ -77,17 +109,52 @@ class MainActivity : Activity() {
             allowContentAccess = true
             javaScriptCanOpenWindowsAutomatically = false
             setSupportMultipleWindows(false)
+            cacheMode = WebSettings.LOAD_DEFAULT
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         }
         webView.addJavascriptInterface(AndroidBridge(), "AstraAndroid")
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val uri = request?.url ?: return false
+                // Vercel may redirect the stable alias to a deployment-specific *.vercel.app host.
+                // Keep that redirect inside this WebView instead of launching Chrome and leaving a blank app.
+                val host = uri.host.orEmpty()
                 val trustedHost = Uri.parse(BuildConfig.WEB_APP_URL).host
-                return if (uri.scheme == "https" && uri.host == trustedHost) {
-                    false
-                } else {
-                    try { startActivity(Intent(Intent.ACTION_VIEW, uri)); true }
-                    catch (_: Exception) { true }
+                val isTrustedHost = host == trustedHost || host == "astra-ai-site.vercel.app" || host.endsWith(".vercel.app")
+                if (uri.scheme == "https" && isTrustedHost) return false
+                if (request.isForMainFrame) {
+                    try { startActivity(Intent(Intent.ACTION_VIEW, uri)) } catch (_: Exception) { }
+                    return true
+                }
+                return false
+            }
+
+            override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                statusOverlay.visibility = View.VISIBLE
+                statusOverlay.text = "Astra AI is loading…"
+            }
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                statusOverlay.visibility = View.GONE
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?
+            ) {
+                if (request?.isForMainFrame == true) {
+                    showLoadError("The website could not be reached.\n${error?.description ?: "Network error"}")
+                }
+            }
+
+            override fun onReceivedHttpError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                errorResponse: android.webkit.WebResourceResponse?
+            ) {
+                if (request?.isForMainFrame == true) {
+                    showLoadError("The website returned HTTP ${errorResponse?.statusCode ?: "error"}. Tap here to retry.")
                 }
             }
         }
@@ -124,8 +191,16 @@ class MainActivity : Activity() {
 
         registerDownloadReceiver()
 
-        if (savedInstanceState != null) webView.restoreState(savedInstanceState)
-        else webView.loadUrl(BuildConfig.WEB_APP_URL)
+        val restoredState = if (savedInstanceState != null) webView.restoreState(savedInstanceState) else null
+        // restoreState() can return null when Android saved an empty/failed WebView; always fall back to the live URL.
+        if (restoredState == null) webView.loadUrl(BuildConfig.WEB_APP_URL)
+    }
+
+    private fun showLoadError(message: String) {
+        runOnUiThread {
+            statusOverlay.text = "Astra AI could not load.\n\n$message\n\nTap here to retry."
+            statusOverlay.visibility = View.VISIBLE
+        }
     }
 
     @Suppress("DEPRECATION")

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f6f5f2">
+  <meta name="description" content="Astra AI — a personal Gemini-powered assistant.">
+  <title>Astra AI</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <svg class="icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.2 1-.9 1.6-1.5-.5a8 8 0 0 1-1.5.9l-.3 1.6h-2l-.4-1.6a8 8 0 0 1-1.7 0l-.4 1.6h-2l-.3-1.6a8 8 0 0 1-1.5-.9l-1.5.5-.9-1.6 1.2-1a8 8 0 0 1-.2-1.7l-1.4-.8.6-1.8 1.6.1a8 8 0 0 1 1.1-1.3l-.3-1.6 1.8-.7.8 1.4a8 8 0 0 1 1.7-.3l.7-1.5 1.9.2.2 1.6a8 8 0 0 1 1.6.7l1.4-.8 1.2 1.5-1 1.2a8 8 0 0 1 .5 1.6l1.6.4v1.9l-1.6.4a8 8 0 0 1-.5 1.5Z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.7 8.7 0 1 0 20.5 15.5Z"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"/></symbol>
+    <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m21.4 11.1-8.9 8.8a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 1 1-2.8-2.8l8.5-8.5"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 8-4 4 4 4m8-8 4 4-4 4m-3-10-2 12"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7m3-10a9 9 0 0 1 0 13"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18m-2 0-.8 14H5.8L5 6m4 0V4h6v2m-5 4v6m4-6v6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m18 6-12 12M6 6l12 12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 20h16"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.4-3"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="m15 5 4 4M4 20l4-.8L20 7a2.8 2.8 0 0 0-4-4L4 15l0 5Z"/></symbol>
+  </svg>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <a class="brand" href="#" aria-label="Astra AI home">
+          <span class="brand-mark"><svg><use href="#i-spark"/></svg></span>
+          <span class="brand-name">astra<span>ai</span></span>
+        </a>
+        <button class="icon-btn mobile-close" id="closeSidebar" aria-label="Close sidebar"><svg><use href="#i-close"/></svg></button>
+      </div>
+      <button class="new-chat-btn" id="newChat"><svg><use href="#i-plus"/></svg><span>New chat</span><kbd>⌘ K</kbd></button>
+      <button class="sidebar-search" id="searchChats"><svg><use href="#i-search"/></svg><span>Search chats</span><kbd>⌘ J</kbd></button>
+      <div class="history-label"><span>RECENT</span><button id="clearHistory" title="Clear all chats">Clear</button></div>
+      <div class="chat-list" id="chatList"></div>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-bottom">
+        <div class="plan-card">
+          <span class="plan-icon"><svg><use href="#i-spark"/></svg></span>
+          <div><strong>Your AI workspace</strong><small>Powered by Gemini API</small></div>
+        </div>
+        <button class="profile-row" id="openSettings">
+          <span class="avatar-mini">C</span><span class="profile-copy"><strong>Personal workspace</strong><small>Settings & API key</small></span><svg class="profile-more"><use href="#i-settings"/></svg>
+        </button>
+      </div>
+    </aside>
+    <div class="sidebar-scrim" id="sidebarScrim"></div>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn menu-btn" id="openSidebar" aria-label="Open menu"><svg><use href="#i-menu"/></svg></button>
+          <div class="mobile-brand"><span class="brand-mark"><svg><use href="#i-spark"/></svg></span><b>astra<span>ai</span></b></div>
+          <div class="current-title" id="currentTitle">New conversation</div>
+        </div>
+        <div class="topbar-right">
+          <label class="model-select-wrap"><span class="model-dot"></span><select id="modelSelect" aria-label="Choose model">
+            <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
+            <option value="gemini-4-argon">Gemini 4 Argon</option>
+            <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option>
+          </select><span class="chevron">⌄</span></label>
+          <button class="update-action" id="updateButton" type="button" aria-label="Check for updates" title="Check for updates"><svg><use href="#i-refresh"/></svg><span>Check updates</span></button>
+          <button class="icon-btn" id="themeToggle" aria-label="Toggle theme"><svg><use href="#i-moon"/></svg></button>
+          <button class="icon-btn install-btn" id="installButton" aria-label="Install app" title="Install app"><svg><use href="#i-download"/></svg></button>
+          <button class="icon-btn" id="settingsButton" aria-label="Settings"><svg><use href="#i-settings"/></svg></button>
+        </div>
+      </header>
+
+      <section class="conversation-wrap" id="conversationWrap">
+        <div class="welcome-screen" id="welcomeScreen">
+          <div class="welcome-orb"><div class="orb-core"><svg><use href="#i-spark"/></svg></div><i class="orb-ring ring-one"></i><i class="orb-ring ring-two"></i></div>
+          <div class="eyebrow"><span></span> YOUR PERSONAL AI SPACE</div>
+          <h1>Ideas begin<br><em>with a spark.</em></h1>
+          <p class="welcome-subtitle">A thoughtful assistant for your questions, research, learning and making things happen.</p>
+          <div class="suggestion-grid">
+            <button class="suggestion-card" data-prompt="Explain a difficult topic in simple Hindi, step by step."><span class="suggestion-icon lavender">✳</span><span><b>Learn something</b><small>Make a complex topic feel simple</small></span><span class="suggestion-arrow">↗</span></button>
+            <button class="suggestion-card" data-prompt="Research this topic using current web sources and cite the sources: "><span class="suggestion-icon mint">⌕</span><span><b>Research & discover</b><small>Find useful, current information</small></span><span class="suggestion-arrow">↗</span></button>
+            <button class="suggestion-card" data-prompt="Help me plan and build a project. Start with a practical step-by-step plan."><span class="suggestion-icon peach">⌘</span><span><b>Build a project</b><small>Turn an idea into a clear plan</small></span><span class="suggestion-arrow">↗</span></button>
+            <button class="suggestion-card" data-prompt="Review this file and explain its most important details: "><span class="suggestion-icon blue">▧</span><span><b>Understand a file</b><small>Ask questions about PDFs and images</small></span><span class="suggestion-arrow">↗</span></button>
+          </div>
+          <div class="api-notice" id="apiNotice"><span class="notice-dot"></span><span>Connect your Gemini API key to begin.</span><button id="connectKey">Connect key <span>→</span></button></div>
+        </div>
+        <div class="messages" id="messages" aria-live="polite"></div>
+      </section>
+
+      <footer class="composer-area">
+        <div class="composer-shell" id="composerShell">
+          <div class="attachment-strip" id="attachmentStrip"></div>
+          <textarea id="promptInput" rows="1" placeholder="Message Astra…" aria-label="Message Astra"></textarea>
+          <div class="composer-bottom">
+            <div class="composer-tools">
+              <button class="tool-btn" id="attachButton" title="Attach files"><svg><use href="#i-paperclip"/></svg><span>Attach</span></button>
+              <input type="file" id="fileInput" hidden multiple accept="image/*,application/pdf,audio/*,.txt,.csv">
+              <button class="tool-btn tool-pill" id="webToggle" aria-pressed="false" title="Ground answers with Google Search"><svg><use href="#i-globe"/></svg><span>Search</span></button>
+              <button class="tool-btn tool-pill" id="codeToggle" aria-pressed="false" title="Allow Python code execution"><svg><use href="#i-code"/></svg><span>Code</span></button>
+              <button class="tool-btn tool-pill" id="mapsToggle" aria-pressed="false" title="Ground answers with Google Maps"><svg><use href="#i-globe"/></svg><span>Maps</span></button>
+              <button class="tool-btn tool-pill image-mode" id="imageToggle" aria-pressed="false" title="Generate an image"><svg><use href="#i-image"/></svg><span>Image</span></button>
+            </div>
+            <div class="composer-actions">
+              <button class="icon-btn mic-btn" id="micButton" title="Speak your message"><svg><use href="#i-mic"/></svg></button>
+              <button class="send-btn" id="sendButton" aria-label="Send message"><svg><use href="#i-send"/></svg></button>
+            </div>
+          </div>
+        </div>
+        <div class="composer-footnote">Astra can make mistakes. Verify important information. <span>·</span> Your key stays in this browser only.</div>
+      </footer>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="settingsModal" aria-hidden="true">
+    <section class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-head"><div><span class="modal-kicker">PERSONAL WORKSPACE</span><h2 id="settingsTitle">Settings</h2></div><button class="icon-btn" id="closeSettings" aria-label="Close settings"><svg><use href="#i-close"/></svg></button></div>
+      <div class="settings-section">
+        <div class="section-heading"><div><h3>Gemini connection</h3><p>Your key is sent directly from this browser to Google.</p></div><span class="connection-badge" id="connectionBadge">Not connected</span></div>
+        <label class="field-label" for="apiKeyInput">Gemini API key</label>
+        <div class="key-field"><input id="apiKeyInput" type="password" autocomplete="off" placeholder="Paste a new Gemini API key"><button id="toggleKeyVisibility" type="button">Show</button></div>
+        <label class="remember-row"><input type="checkbox" id="rememberKey"><span>Remember key on this device <small>Not recommended on shared devices.</small></span></label>
+        <div class="settings-actions"><button class="primary-btn" id="saveKey">Save key</button><button class="secondary-btn" id="testKey">Test connection</button><button class="text-btn danger-text" id="forgetKey">Forget</button></div>
+        <p class="security-note">Never publish an API key in GitHub files. Anyone who can access a client-side app may be able to inspect its requests. For a public app, use a protected backend or a suitable Firebase AI Logic setup.</p>
+      </div>
+      <div class="settings-section compact-section">
+        <div><h3>Response voice</h3><p>Read AI responses aloud using your browser's speech engine.</p></div>
+        <label class="switch-row"><span>Speak responses</span><input type="checkbox" id="speakToggle"><i></i></label>
+      </div>
+      <div class="settings-section compact-section">
+        <div><h3>Privacy & local data</h3><p>Chats are saved in this browser. Requests are sent to Google Gemini API. Astra uses stateless requests, not server-side chat IDs.</p></div>
+        <button class="secondary-btn" id="deleteLocalData">Delete local chat history</button>
+      </div>
+      <div class="modal-bottom"><span>ASTRA AI · PERSONAL EDITION</span><a href="https://ai.google.dev/gemini-api/docs" target="_blank" rel="noopener">Gemini API docs ↗</a></div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>

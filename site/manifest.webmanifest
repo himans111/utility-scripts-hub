@@ -1,0 +1,19 @@
+{
+  "name": "Astra AI",
+  "short_name": "Astra AI",
+  "description": "A personal Gemini-powered AI assistant.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f6f5f2",
+  "theme_color": "#f6f5f2",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

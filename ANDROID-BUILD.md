@@ -4,7 +4,7 @@ Astra AI is a lightweight Android WebView wrapper around the `site/` PWA. The An
 
 ## GitHub Actions build
 
-A push to `main` that changes `android/`, `site/` or the build workflow triggers an Android build. GitHub Actions builds `Astra-AI.apk`, stores it as the `Astra-AI-Android-APK` workflow artifact, and publishes the same APK as a GitHub Release asset (`Astra-AI.apk`). The APK version code increments with the workflow run ID.
+A push to `main` that changes `android/`, `site/` or the build workflow triggers an Android build. GitHub Actions builds `Astra-AI.apk`, stores it as the `Astra-AI-Android-APK` workflow artifact, and publishes the same APK as a GitHub Release asset (`Astra-AI.apk`). The APK version code increments with the workflow run number.
 
 ## In-app update button
 
@@ -13,11 +13,11 @@ The **Check updates** button has two jobs:
 - The web app checks its service worker and installs updated PWA files.
 - In the Android APK, the same button also checks the latest GitHub Release. When a newer APK is available, Astra offers to download it. Android then asks the user to approve installation. Android's installation confirmation cannot be bypassed by the app.
 
-A native Android change is delivered through a new APK release. A website-only change can be delivered by the service worker without reinstalling the APK.
+A native Android change is delivered through a new APK release. A website-only change can be delivered by the service worker without reinstalling the APK after the static website is redeployed to Vercel.
 
 ## Important signing note
 
-The workflow builds a debug-signed APK so the project can be built without a private signing-keystore secret. This is suitable for personal testing and sideloading, not a Play Store production release. Keep the same debug signing configuration for in-place updates. A Play Store release requires a private release keystore and a separate signing configuration.
+The workflow builds a debug-signed APK so the project can be built without a private signing-keystore secret. This is suitable for personal testing and sideloading, not a Play Store production release. Reliable in-place Android updates require every APK to use the same signing key; this workflow currently does not keep a private release keystore in GitHub Secrets. A Play Store release requires a private release keystore and a separate signing configuration.
 
 ## Gemini API key
 
@@ -25,7 +25,7 @@ Enter the key in Astra Settings on the device. Do not commit it to GitHub or bak
 
 ## Manual build
 
-Use Java 17, Android SDK Platform 35, Build Tools 35.0.0 and Gradle 8.9. From the `android/` directory run:
+Use Java 17, Android SDK Platform 35, Build Tools 35.0.1 and Gradle 8.9. From the `android/` directory run:
 
 ```bash
 gradle --no-daemon :app:assembleDebug

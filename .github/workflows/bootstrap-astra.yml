@@ -37,6 +37,7 @@ jobs:
           unzip -q "$RUNNER_TEMP/astra-project.zip" -d "$RUNNER_TEMP/astra-extract"
           test -d "$RUNNER_TEMP/astra-extract/astra-ai-github"
           cp -a "$RUNNER_TEMP/astra-extract/astra-ai-github/." .
+          rm -f .github/workflows/build-astra-ai-apk.yml .github/workflows/deploy-astra-ai-pages.yml
           rm -rf .astra_source "$RUNNER_TEMP/astra-extract" "$RUNNER_TEMP/astra-project.zip" "$RUNNER_TEMP/astra-project.zip.b64"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

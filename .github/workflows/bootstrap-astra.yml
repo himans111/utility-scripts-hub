@@ -1,0 +1,109 @@
+name: Bootstrap Astra AI Android APK and Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".astra_source/**"
+      - ".github/workflows/bootstrap-astra.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: astra-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  restore-build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Restore source archive from staged parts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/astra-extract"
+          cat .astra_source/chunk-* > "$RUNNER_TEMP/astra-project.zip.b64"
+          base64 --decode "$RUNNER_TEMP/astra-project.zip.b64" > "$RUNNER_TEMP/astra-project.zip"
+          unzip -t "$RUNNER_TEMP/astra-project.zip"
+          unzip -q "$RUNNER_TEMP/astra-project.zip" -d "$RUNNER_TEMP/astra-extract"
+          test -d "$RUNNER_TEMP/astra-extract/astra-ai-github"
+          cp -a "$RUNNER_TEMP/astra-extract/astra-ai-github/." .
+          rm -rf .astra_source "$RUNNER_TEMP/astra-extract" "$RUNNER_TEMP/astra-project.zip" "$RUNNER_TEMP/astra-project.zip.b64"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Add Astra AI Android and website source"
+            git push origin HEAD:main
+          fi
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build Android APK
+        working-directory: android
+        env:
+          VERSION_CODE: ${{ github.run_id }}
+        run: |
+          gradle --no-daemon :app:assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/Astra-AI.apk"
+
+      - name: Upload APK build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astra-AI-Android-APK
+          path: ${{ runner.temp }}/Astra-AI.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_id }}
+          name: Astra AI v1.0.${{ github.run_id }}
+          body: |
+            Astra AI Android app release.
+            Install the APK manually and enter your own Gemini API key in Settings.
+            New APK versions are checked from inside the app using Check updates.
+          files: ${{ runner.temp }}/Astra-AI.apk
+          make_latest: true
+          generate_release_notes: true
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy website
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          token: ${{ github.token }}

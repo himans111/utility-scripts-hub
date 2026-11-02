@@ -350,47 +350,35 @@
   }
 
   async function callGemini(prompt, chat, attachments, isImage) {
-    const key = getApiKey(); if (!key) { openSettings(); throw new Error('Add your Gemini API key in Settings to start chatting.'); }
+    const key = getApiKey();
+    if (!key) {
+      openSettings();
+      throw new Error('Add your Gemini API key in Settings to start chatting.');
+    }
+
     const model = isImage ? 'gemini-nano-banana-2.1' : ($('#modelSelect').value || 'gemini-3.8-flash');
     const tools = [];
     if (state.web && !isImage) tools.push({ type:'google_search' });
     if (state.code && !isImage) tools.push({ type:'code_execution' });
     if (state.maps && !isImage) tools.push({ type:'google_maps' });
-    if (state.web && !isImage && /https?:\/\//i.test(prompt)) tools.push({ type:'url_context' });
-    const payload = { model, input:makeInput(prompt,attachments,chat,isImage), store:false };
+    if (state.web && !isImage && /https?:\\/\\//i.test(prompt)) tools.push({ type:'url_context' });
+
+    const payload = {
+      model,
+      input: makeInput(prompt, attachments, chat, isImage),
+      store: false
+    };
     if (tools.length) payload.tools = tools;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
-    let response;
-    try {
-      response = await fetch(API_URL, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'x-goog-api-key':key },
-        body:JSON.stringify(payload),
-        signal:controller.signal
-      });
-    } catch (error) {
-      if (error?.name === 'AbortError') {
-        throw new Error('Gemini took too long to respond (90-second timeout). Please try again with a shorter prompt.');
-      }
-      throw new Error('The app could not reach Google Gemini. Check your internet connection. If the internet works, the browser may have blocked the request (network/CORS issue). Details: ' + (error?.message || 'Network error'));
-    } finally {
-      clearTimeout(timeoutId);
-    }
-    const raw = await response.text();
-    let data; try { data = JSON.parse(raw); } catch { data = { message: raw }; }
-    if (!response.ok) {
-      const detail = data.error?.message || data.message || `HTTP ${response.status}`;
-      if (response.status === 401 || response.status === 403) throw new Error(`Google rejected this API key or model access. Check the key, API restrictions and Gemini API access. Details: ${detail}`);
-      if (response.status === 429) throw new Error(`Gemini rate limit or quota reached. Try again later or check Google AI Studio usage. Details: ${detail}`);
-      throw new Error(detail);
-    }
+
+    const { data, modelUsed, usedFallback } = await requestWithModelFallback(payload, key, !isImage);
     const result = getResponseData(data);
+
     if (!result.text && !result.images.length) {
       const apiStatus = data.status || 'unknown';
       const interactionId = data.id ? ` (interaction ${data.id})` : '';
-      throw new Error(`Google accepted the request but returned no displayable answer. Status: ${apiStatus}${interactionId}. Try again or use Test connection in Settings.`);
+      throw new Error(`Google accepted the request but returned no displayable answer. Status: ${apiStatus}${interactionId}. Try another model or use Test connection in Settings.`);
     }
+
     result.modelUsed = modelUsed;
     result.usedFallback = usedFallback;
     return result;

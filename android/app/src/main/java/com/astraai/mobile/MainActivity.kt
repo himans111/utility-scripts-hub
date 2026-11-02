@@ -225,7 +225,7 @@ class MainActivity : Activity() {
                         val photoFile = File(cameraDirectory, "astra-${System.currentTimeMillis()}.jpg")
                         val photoUri = FileProvider.getUriForFile(
                             this@MainActivity,
-                            "${applicationId}.fileprovider",
+                            "${packageName}.fileprovider",
                             photoFile
                         )
                         val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {

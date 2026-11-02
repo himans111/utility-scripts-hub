@@ -30,10 +30,23 @@
     catch { return []; }
   }
   function loadSettings() {
-    try { return { theme: 'light', speak: false, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
-    catch { return { theme: 'light', speak: false }; }
+    try { return { theme: 'light', speak: false, responseMode: 'normal', ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
+    catch { return { theme: 'light', speak: false, responseMode: 'normal' }; }
   }
   function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings)); }
+  function updateResponseModeUI() {
+    const mode = state.settings.responseMode || 'normal';
+    const labels = { quick:'Short, direct answers', normal:'Balanced detail', research:'Detailed answers with web research' };
+    const select = $('#responseModeSelect');
+    if (select) select.value = mode;
+    const hint = $('#responseModeHint');
+    if (hint) hint.textContent = labels[mode] || labels.normal;
+  }
+  function setResponseMode(mode) {
+    state.settings.responseMode = ['quick','normal','research'].includes(mode) ? mode : 'normal';
+    saveSettings();
+    updateResponseModeUI();
+  }
   function saveChats() {
     state.chats = state.chats.slice(0, 35);
     try { const safeCopy = state.chats.map(chat => ({ ...chat, messages: (chat.messages || []).map(message => ({ ...message, images: [] })) })); localStorage.setItem(STORAGE_KEY, JSON.stringify(safeCopy)); }
@@ -185,7 +198,7 @@
       reader.readAsDataURL(file);
     });
   }
-  async function handleFiles(files) {
+  async function handleFiles(files, inputSelector = '#fileInput') {
     for (const file of files) {
       if (file.size > MAX_FILE_BYTES) { toast(`${file.name}: choose a file under 15 MB.`); continue; }
       const lower = file.name.toLowerCase();
@@ -202,7 +215,9 @@
         toast(`${file.name}: use PDF, image, audio, TXT or CSV.`);
       }
     }
-    renderAttachments(); $('#fileInput').value = '';
+    renderAttachments();
+    const picker = $(inputSelector);
+    if (picker) picker.value = '';
   }
   function renderAttachments() {
     const strip = $('#attachmentStrip'); strip.innerHTML = '';
@@ -261,9 +276,15 @@
   }
   function makeInput(prompt, attachments, chat, isImage) {
     const history = (chat?.messages || []).slice(0, -1).filter(m => !m.pending).slice(-MAX_CONTEXT_MESSAGES).map(m => `${m.role === 'user' ? 'User' : 'Astra'}: ${m.text}`).join('\n\n');
+    const responseMode = state.settings.responseMode || 'normal';
+    const responseStyle = {
+      quick: 'Response style: QUICK. Give a concise, direct answer first. Prefer a short paragraph or a few bullets. Avoid unnecessary background, but do not omit essential warnings or caveats.',
+      normal: 'Response style: NORMAL. Give a balanced answer with enough explanation, useful examples and clear structure. Avoid unnecessary length.',
+      research: 'Response style: DEEP RESEARCH. For questions that benefit from current information, use Google Search to investigate the topic, compare reliable sources, distinguish verified facts from uncertainty, and cite source links in the answer. Explain the reasoning and important context in depth. Do not pretend to have searched if no search results are available.'
+    }[responseMode] || 'Response style: NORMAL. Give a balanced, clearly structured answer.';
     const modeInstruction = isImage
       ? 'Create a polished, high-quality image from the latest user request. Return an image, not merely a description.'
-      : 'You are Astra AI, a capable, warm, careful multilingual assistant. Reply in the language used by the user unless asked otherwise. Be accurate, structured, useful, and direct. For study questions, explain clearly with examples. Do not invent sources or claim you performed actions you did not perform.';
+      : `You are Astra AI, a capable, warm, careful multilingual assistant. Reply in the language used by the user unless asked otherwise. Be accurate, structured and useful. For study questions, explain clearly with examples. Do not invent sources or claim you performed actions you did not perform. ${responseStyle}`;
     const combined = `${modeInstruction}\n\n${history ? `Conversation context (older turns):\n${history}\n\n` : ''}User's latest message:\n${prompt || (attachments.length ? 'Please inspect the attached file(s) and explain what matters.' : '')}`;
     const input = [{ type:'text', text:combined }];
     const videoMatch = prompt.match(/https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=[\w-]+|youtu\.be\/[\w-]+)/i);
@@ -358,7 +379,7 @@
 
     const model = isImage ? 'gemini-nano-banana-2.1' : ($('#modelSelect').value || 'gemini-3.8-flash');
     const tools = [];
-    if (state.web && !isImage) tools.push({ type:'google_search' });
+    if ((state.web || state.settings.responseMode === 'research') && !isImage) tools.push({ type:'google_search' });
     if (state.code && !isImage) tools.push({ type:'code_execution' });
     if (state.maps && !isImage) tools.push({ type:'google_maps' });
     if (state.web && !isImage && /https?:\/\//i.test(prompt)) tools.push({ type:'url_context' });
@@ -516,7 +537,12 @@
     $('#mapsToggle').addEventListener('click',()=>toggleTool($('#mapsToggle'),'maps'));
     $('#imageToggle').addEventListener('click',()=>{state.image=!state.image;$('#imageToggle').setAttribute('aria-pressed',String(state.image));if(state.image)toast('Image mode: describe the image you want to create.');});
     $('#attachButton').addEventListener('click',()=>$('#fileInput').click());
-    $('#fileInput').addEventListener('change',e=>handleFiles([...e.target.files]));
+    $('#fileInput').addEventListener('change',e=>handleFiles([...e.target.files],'#fileInput'));
+    $('#cameraButton').addEventListener('click',()=>$('#cameraInput').click());
+    $('#cameraInput').addEventListener('change',e=>handleFiles([...e.target.files],'#cameraInput'));
+    $('#galleryButton').addEventListener('click',()=>$('#galleryInput').click());
+    $('#galleryInput').addEventListener('change',e=>handleFiles([...e.target.files],'#galleryInput'));
+    $('#responseModeSelect').addEventListener('change',e=>setResponseMode(e.target.value));
     $('#promptInput').addEventListener('input',autoResizeInput);
     $('#promptInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
     $('#sendButton').addEventListener('click',()=>sendMessage());
@@ -626,7 +652,7 @@
   function init() {
     applyTheme(); bindEvents();
     if (state.chats.length) { state.currentId=state.chats[0].id; const chat=currentChat(); if(chat?.model) $('#modelSelect').value=chat.model; }
-    renderAll(); renderAttachments(); updateConnectionUI();
+    renderAll(); renderAttachments(); updateConnectionUI(); updateResponseModeUI();
     setupUpdates();
   }
   init();

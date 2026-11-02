@@ -8,3 +8,27 @@ body.dark{--bg:#17181b;--paper:#202126;--paper-2:#292a30;--ink:#eeeef2;--muted:#
 
 /* In-app updater */
 .update-action{height:34px;display:flex;align-items:center;gap:7px;padding:0 11px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--muted);font-size:10px;font-weight:650;white-space:nowrap}.update-action:hover{border-color:#b9b0e8;color:var(--accent)}.update-action svg{width:14px;height:14px}.update-action.is-ready{background:var(--accent-soft);border-color:#c7c0ec;color:var(--accent)}.update-action:disabled{opacity:.6;cursor:wait}@media(max-width:560px){.update-action{width:31px;height:31px;padding:0;justify-content:center;border:0;background:transparent}.update-action span{display:none}.topbar-right .update-action{margin-right:1px}}
+
+
+/* Composer answer modes and three separate attachment sources */
+.composer-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:1px 6px 9px}
+.response-mode-control{display:inline-flex;align-items:center;gap:8px;min-height:27px;padding:4px 9px;border:1px solid var(--line);border-radius:9px;background:var(--paper-2);color:var(--muted);font-size:10px}
+.response-mode-control span{font-weight:650;color:var(--ink)}
+.response-mode-control select{max-width:125px;border:0;outline:0;background:transparent;color:var(--accent);font-size:10px;font-weight:700}
+.response-mode-hint{font-size:9px;color:var(--muted);text-align:right}
+.composer-tools{flex:1;min-width:0;flex-wrap:wrap;row-gap:3px}
+.composer-tools .tool-btn{white-space:nowrap}
+@media(max-width:560px){
+  .composer-meta{padding:0 3px 8px}
+  .response-mode-control{min-height:26px;padding:3px 7px;gap:6px;font-size:9px}
+  .response-mode-control select{font-size:9px;max-width:112px}
+  .response-mode-hint{font-size:8px}
+  .composer-bottom{align-items:flex-end}
+  .composer-tools{max-width:calc(100% - 76px);gap:1px 2px}
+  .composer-tools .tool-btn{height:28px;padding:0 4px;gap:3px}
+  .composer-tools .tool-btn span{font-size:8px}
+  .composer-tools .tool-btn svg{width:12px;height:12px}
+}
+body.dark .response-mode-control{background:#292a30;border-color:#393a42;color:#a6a5ae}
+body.dark .response-mode-control span{color:#dddde4}
+body.dark .response-mode-control select{color:#c5bcff}

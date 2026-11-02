@@ -276,6 +276,79 @@
     }
     return input;
   }
+  const MODEL_FALLBACKS = [
+    'gemini-3.6-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite'
+  ];
+
+  function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function requestWithModelFallback(payload, key, allowFallback = true) {
+    const requestedModel = payload.model;
+    const models = allowFallback
+      ? [requestedModel, ...MODEL_FALLBACKS.filter(model => model !== requestedModel)]
+      : [requestedModel];
+    const overloadedModels = [];
+
+    for (const model of models) {
+      // A short retry helps with a brief capacity spike before switching models.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000);
+        let response;
+
+        try {
+          response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+            body: JSON.stringify({ ...payload, model }),
+            signal: controller.signal
+          });
+        } catch (error) {
+          if (error?.name === 'AbortError') {
+            throw new Error(`Gemini did not respond within 90 seconds while trying ${model}. Please try again.`);
+          }
+          throw new Error('The app could not reach Google Gemini. Check your internet connection. Details: ' + (error?.message || 'Network error'));
+        } finally {
+          clearTimeout(timeoutId);
+        }
+
+        const raw = await response.text();
+        let data;
+        try { data = JSON.parse(raw); } catch { data = { message: raw }; }
+
+        if (response.ok) {
+          return { data, modelUsed: model, usedFallback: model !== requestedModel };
+        }
+
+        const detail = data.error?.message || data.message || `HTTP ${response.status}`;
+        if (response.status === 503) {
+          overloadedModels.push(model);
+          if (attempt === 0) {
+            await wait(1000);
+            continue;
+          }
+          break;
+        }
+
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(`Google rejected this API key or its access. Check the key and Gemini API access. Details: ${detail}`);
+        }
+        if (response.status === 429) {
+          throw new Error(`Gemini quota or rate limit reached. Model switching cannot fix a project quota limit. Check Google AI Studio usage. Details: ${detail}`);
+        }
+        throw new Error(`Google Gemini returned HTTP ${response.status} for ${model}: ${detail}`);
+      }
+    }
+
+    throw new Error(
+      `Google Gemini is temporarily overloaded (HTTP 503). Astra retried and checked these models: ${[...new Set(overloadedModels)].join(', ')}. No available model responded just now. Your API key format is not the cause. Please try again shortly.`
+    );
+  }
+
   async function callGemini(prompt, chat, attachments, isImage) {
     const key = getApiKey(); if (!key) { openSettings(); throw new Error('Add your Gemini API key in Settings to start chatting.'); }
     const model = isImage ? 'gemini-nano-banana-2.1' : ($('#modelSelect').value || 'gemini-3.8-flash');
@@ -318,6 +391,8 @@
       const interactionId = data.id ? ` (interaction ${data.id})` : '';
       throw new Error(`Google accepted the request but returned no displayable answer. Status: ${apiStatus}${interactionId}. Try again or use Test connection in Settings.`);
     }
+    result.modelUsed = modelUsed;
+    result.usedFallback = usedFallback;
     return result;
   }
   function updateChatTitle(chat, firstMessage) {
@@ -347,7 +422,12 @@
     try {
       const result = await callGemini(prompt, chat, attachments, isImage);
       typing.remove();
-      const assistantMessage = { role:'assistant', text:result.text, images:result.images, sources:result.sources, model:isImage?'gemini-nano-banana-2.1':$('#modelSelect').value };
+      if (result.usedFallback && result.modelUsed) {
+        $('#modelSelect').value = result.modelUsed;
+        chat.model = result.modelUsed;
+        toast(`The selected model was busy. Astra switched to ${result.modelUsed} automatically.`);
+      }
+      const assistantMessage = { role:'assistant', text:result.text, images:result.images, sources:result.sources, model:result.modelUsed || (isImage?'gemini-nano-banana-2.1':$('#modelSelect').value) };
       chat.messages.push(assistantMessage); chat.updated=Date.now(); saveChats(); appendMessageToDOM(assistantMessage); renderChatList();
       if (state.settings.speak && result.text) speak(result.text);
     } catch (error) {
@@ -392,46 +472,34 @@
   async function testConnection() {
     const key = $('#apiKeyInput').value.trim() || getApiKey();
     if (!key) { toast('Paste your Gemini API key first.'); return; }
-    const model = $('#modelSelect').value || 'gemini-3.8-flash';
+    const requestedModel = $('#modelSelect').value || 'gemini-3.8-flash';
     const button = $('#testKey');
     const oldLabel = button.textContent;
     button.textContent = 'Testing…';
     button.disabled = true;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000);
     try {
-      const response = await fetch(API_URL, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'x-goog-api-key':key },
-        body:JSON.stringify({ model, input:'Reply with exactly: Astra is connected.', store:false }),
-        signal:controller.signal
-      });
-      const raw = await response.text();
-      let data;
-      try { data = JSON.parse(raw); } catch { data = { message: raw }; }
-      if (!response.ok) {
-        const detail = data.error?.message || data.message || `HTTP ${response.status}`;
-        if (response.status === 401 || response.status === 403) {
-          throw new Error(`Google rejected this API key or its access. Check that it is a Gemini Auth/API key and that the Gemini API is enabled. Details: ${detail}`);
-        }
-        if (response.status === 429) {
-          throw new Error(`Gemini quota/rate limit reached. Check AI Studio usage and limits. Details: ${detail}`);
-        }
-        throw new Error(`Google Gemini returned HTTP ${response.status}: ${detail}`);
-      }
+      const { data, modelUsed, usedFallback } = await requestWithModelFallback({
+        model: requestedModel,
+        input: 'Reply with exactly: Astra is connected.',
+        store: false
+      }, key, true);
+
       const result = getResponseData(data);
       if (!result.text) {
-        throw new Error(`The API responded but did not return a text answer. Status: ${data.status || 'unknown'}. Model: ${model}.`);
+        throw new Error(`The API responded but did not return a text answer. Status: ${data.status || 'unknown'}. Model: ${modelUsed}.`);
       }
-      toast(`Connection works — Gemini replied: ${result.text.slice(0, 75)}`);
-    } catch (error) {
-      if (error?.name === 'AbortError') {
-        toast('Connection test timed out after 45 seconds. Try again.');
+
+      if (usedFallback) {
+        $('#modelSelect').value = modelUsed;
+        const chat = currentChat();
+        if (chat) { chat.model = modelUsed; saveChats(); }
+        toast(`Connection works. ${requestedModel} was busy; switched to ${modelUsed}. Reply: ${result.text.slice(0, 50)}`);
       } else {
-        toast(`Connection test failed: ${error.message || 'Network error'}`);
+        toast(`Connection works — ${modelUsed} replied: ${result.text.slice(0, 65)}`);
       }
+    } catch (error) {
+      toast(`Connection test failed: ${error.message || 'Network error'}`);
     } finally {
-      clearTimeout(timeoutId);
       button.textContent = oldLabel;
       button.disabled = false;
     }

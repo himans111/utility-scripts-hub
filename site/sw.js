@@ -1,4 +1,4 @@
-const CACHE = 'astra-ai-static-v4';
+const CACHE = 'astra-ai-static-v5';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './assets/icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));

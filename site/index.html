@@ -21,6 +21,7 @@
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.7 8.7 0 1 0 20.5 15.5Z"/></symbol>
     <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"/></symbol>
     <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m21.4 11.1-8.9 8.8a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 1 1-2.8-2.8l8.5-8.5"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/></symbol>
     <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8"/></symbol>
     <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></symbol>
     <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></symbol>
@@ -102,12 +103,27 @@
 
       <footer class="composer-area">
         <div class="composer-shell" id="composerShell">
+          <div class="composer-meta">
+            <label class="response-mode-control" for="responseModeSelect">
+              <span>Answer style</span>
+              <select id="responseModeSelect" aria-label="Answer style">
+                <option value="quick">Quick</option>
+                <option value="normal" selected>Normal</option>
+                <option value="research">Deep Research</option>
+              </select>
+            </label>
+            <span class="response-mode-hint" id="responseModeHint">Balanced detail</span>
+          </div>
           <div class="attachment-strip" id="attachmentStrip"></div>
           <textarea id="promptInput" rows="1" placeholder="Message Astra…" aria-label="Message Astra"></textarea>
           <div class="composer-bottom">
             <div class="composer-tools">
-              <button class="tool-btn" id="attachButton" title="Attach files"><svg><use href="#i-paperclip"/></svg><span>Attach</span></button>
-              <input type="file" id="fileInput" hidden multiple accept="image/*,application/pdf,audio/*,.txt,.csv">
+              <button class="tool-btn" id="attachButton" title="Choose files"><svg><use href="#i-paperclip"/></svg><span>Files</span></button>
+              <input type="file" id="fileInput" hidden multiple accept="application/pdf,audio/*,text/plain,text/csv,.txt,.csv">
+              <button class="tool-btn" id="cameraButton" title="Take a photo"><svg><use href="#i-camera"/></svg><span>Camera</span></button>
+              <input type="file" id="cameraInput" hidden accept="image/*" capture="environment">
+              <button class="tool-btn" id="galleryButton" title="Choose photos"><svg><use href="#i-image"/></svg><span>Photos</span></button>
+              <input type="file" id="galleryInput" hidden accept="image/*" multiple>
               <button class="tool-btn tool-pill" id="webToggle" aria-pressed="false" title="Ground answers with Google Search"><svg><use href="#i-globe"/></svg><span>Search</span></button>
               <button class="tool-btn tool-pill" id="codeToggle" aria-pressed="false" title="Allow Python code execution"><svg><use href="#i-code"/></svg><span>Code</span></button>
               <button class="tool-btn tool-pill" id="mapsToggle" aria-pressed="false" title="Ground answers with Google Maps"><svg><use href="#i-globe"/></svg><span>Maps</span></button>

@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.provider.MediaStore
 import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
@@ -32,6 +33,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import java.io.File
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -40,6 +47,8 @@ class MainActivity : Activity() {
     private lateinit var webView: WebView
     private lateinit var statusOverlay: TextView
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
+    private var pendingCameraUri: Uri? = null
+    private var pendingCameraFile: File? = null
     private var pendingPermissionRequest: PermissionRequest? = null
     private var pendingInstallUri: Uri? = null
     private var pendingDownloadId: Long = -1L
@@ -90,7 +99,19 @@ class MainActivity : Activity() {
                 webView.reload()
             }
         }
-        val container = FrameLayout(this)
+        // Android 15+ draws edge-to-edge by default. Keep WebView controls below the
+        // status bar and above the gesture/navigation area by applying system insets.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val container = FrameLayout(this).apply {
+            setBackgroundColor(Color.rgb(246, 245, 242))
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(container) { view, insets ->
+            val safe = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(safe.left, safe.top, safe.right, safe.bottom)
+            insets
+        }
         container.addView(webView, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
@@ -100,6 +121,11 @@ class MainActivity : Activity() {
             ViewGroup.LayoutParams.MATCH_PARENT
         ))
         setContentView(container)
+        WindowInsetsControllerCompat(window, container).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
+        ViewCompat.requestApplyInsets(container)
 
         webView.settings.apply {
             javaScriptEnabled = true
@@ -182,14 +208,66 @@ class MainActivity : Activity() {
                 fileChooserParams: FileChooserParams?
             ): Boolean {
                 fileChooserCallback?.onReceiveValue(null)
-                this@MainActivity.fileChooserCallback = filePathCallback
+                fileChooserCallback = filePathCallback
+                if (filePathCallback == null) return false
+
+                val acceptedTypes = fileChooserParams?.acceptTypes
+                    ?.flatMap { it.split(",") }
+                    ?.map { it.trim().lowercase() }
+                    ?.filter { it.isNotBlank() }
+                    .orEmpty()
+                val wantsCamera = fileChooserParams?.isCaptureEnabled == true &&
+                    (acceptedTypes.isEmpty() || acceptedTypes.any { it.startsWith("image/") })
+
+                if (wantsCamera) {
+                    return try {
+                        val cameraDirectory = File(cacheDir, "camera").apply { mkdirs() }
+                        val photoFile = File(cameraDirectory, "astra-${System.currentTimeMillis()}.jpg")
+                        val photoUri = FileProvider.getUriForFile(
+                            this@MainActivity,
+                            "${applicationId}.fileprovider",
+                            photoFile
+                        )
+                        val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+                            putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                            clipData = android.content.ClipData.newUri(contentResolver, "Astra camera photo", photoUri)
+                        }
+                        pendingCameraUri = photoUri
+                        pendingCameraFile = photoFile
+                        startActivityForResult(cameraIntent, fileChooserRequest)
+                        true
+                    } catch (error: Exception) {
+                        pendingCameraUri = null
+                        pendingCameraFile = null
+                        fileChooserCallback?.onReceiveValue(null)
+                        fileChooserCallback = null
+                        toast("Could not open the camera: ${error.message ?: "Camera unavailable"}")
+                        true
+                    }
+                }
+
+                val mimeTypes = acceptedTypes
+                    .filter { it.contains("/") && it != "*/*" }
+                    .distinct()
+                    .toTypedArray()
+                val preferredType = if (mimeTypes.size == 1) mimeTypes[0] else "*/*"
                 val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
-                    type = "*/*"
-                    putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "application/pdf", "audio/*", "text/plain", "text/csv"))
+                    type = preferredType
+                    if (mimeTypes.size > 1) putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+                    if (fileChooserParams?.mode == FileChooserParams.MODE_OPEN_MULTIPLE) {
+                        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                    }
                 }
-                return try { startActivityForResult(Intent.createChooser(intent, "Choose a file"), fileChooserRequest); true }
-                catch (_: Exception) { this@MainActivity.fileChooserCallback = null; false }
+                return try {
+                    val title = if (acceptedTypes.any { it.startsWith("image/") }) "Choose photos" else "Choose files"
+                    startActivityForResult(Intent.createChooser(intent, title), fileChooserRequest)
+                    true
+                } catch (_: Exception) {
+                    this@MainActivity.fileChooserCallback = null
+                    false
+                }
             }
         }
 
@@ -351,7 +429,24 @@ class MainActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == fileChooserRequest) {
-            val result = if (resultCode == RESULT_OK && data?.data != null) arrayOf(data.data!!) else null
+            val cameraUri = pendingCameraUri
+            val cameraFile = pendingCameraFile
+            val result: Array<Uri>? = if (resultCode == RESULT_OK) {
+                when {
+                    cameraUri != null && cameraFile?.exists() == true && cameraFile.length() > 0L ->
+                        arrayOf(cameraUri)
+                    data?.clipData != null -> {
+                        val clip = data.clipData!!
+                        Array(clip.itemCount) { index -> clip.getItemAt(index).uri }
+                    }
+                    data?.data != null -> arrayOf(data.data!!)
+                    else -> null
+                }
+            } else null
+
+            if (result == null) cameraFile?.delete()
+            pendingCameraUri = null
+            pendingCameraFile = null
             fileChooserCallback?.onReceiveValue(result)
             fileChooserCallback = null
         }

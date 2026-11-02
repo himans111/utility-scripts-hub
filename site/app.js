@@ -361,7 +361,7 @@
     if (state.web && !isImage) tools.push({ type:'google_search' });
     if (state.code && !isImage) tools.push({ type:'code_execution' });
     if (state.maps && !isImage) tools.push({ type:'google_maps' });
-    if (state.web && !isImage && /https?:\\/\\//i.test(prompt)) tools.push({ type:'url_context' });
+    if (state.web && !isImage && /https?:\/\//i.test(prompt)) tools.push({ type:'url_context' });
 
     const payload = {
       model,
